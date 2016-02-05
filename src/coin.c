@@ -448,10 +448,6 @@ ws_cb(EV_P_ ev_io *w, int UNUSED(revents))
 		if ((npr = proc_beef(gbuf, boff + nrd)) < 0) {
 			goto unroll;
 		}
-		/* check if there's messages from the channel */
-		if (tsp->tv_sec - ctx->last_act->tv_sec >= MAX_INACT) {
-			ctx->st = COIN_ST_CONN;
-		}
 		if (ping) {
 			reply_heartbeat(ctx->ss);
 		}
@@ -701,6 +697,10 @@ prepare(EV_P_ ev_prepare *w, int UNUSED(revents))
 	case COIN_ST_JOIN:
 		break;
 	case COIN_ST_JOIND:
+		/* check if there's messages from the channel */
+		if (tsp->tv_sec - ctx->last_act->tv_sec >= MAX_INACT) {
+			goto unroll;
+		}
 		break;
 
 	case COIN_ST_NODATA:
@@ -718,6 +718,19 @@ prepare(EV_P_ ev_prepare *w, int UNUSED(revents))
 	default:
 		break;
 	}
+	return;
+
+unroll:
+	/* connection reset */
+	toout_logline("restart in 3", 12);
+	sleep(1);
+	toout_logline("restart in 2", 12);
+	sleep(1);
+	toout_logline("restart in 1", 12);
+	sleep(1);
+	toout_logline("restart", 7);
+	ctx->nothing = 0;
+	ctx->st = COIN_ST_RECONN;
 	return;
 }
 
