@@ -435,6 +435,8 @@ ws_cb(EV_P_ ev_io *w, int UNUSED(revents))
 			;
 		} else if (!memcmp(gbuf, "HTTP/1.1 101", 12U)) {
 			ctx->st = COIN_ST_CONND;
+			fwrite(gbuf, 1, nrd, stderr);
+			fputs("CONND\n", stderr);
 		}
 		boff = 0;
 		break;
@@ -682,7 +684,7 @@ prepare(EV_P_ ev_prepare *w, int UNUSED(revents))
 {
 	coin_ctx_t ctx = w->data;
 
-	fputs("PREP\n", stderr);
+	fprintf(stderr, "PREP(%u)\n", ctx->st);
 	switch (ctx->st) {
 	case COIN_ST_UNK:
 		/* initialise everything, sets the state */
