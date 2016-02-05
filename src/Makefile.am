@@ -3,19 +3,26 @@ include $(top_builddir)/version.mk
 
 AM_CFLAGS = $(EXTRA_CFLAGS)
 AM_CPPFLAGS = -D_POSIX_C_SOURCE=201001L -D_XOPEN_SOURCE=700 -D_BSD_SOURCE
-AM_CPPFLAGS += -D_HAVE_VERSION_H
+AM_CPPFLAGS += -DHAVE_VERSION_H
 AM_LDFLAGS = $(XCCLDFLAGS)
 
 bin_PROGRAMS =
 noinst_PROGRAMS =
-lib_LTLIBRARIES =
 noinst_LTLIBRARIES =
-pkglib_LTLIBRARIES =
-noinst_HEADERS =
 BUILT_SOURCES =
 EXTRA_DIST = $(BUILT_SOURCES)
-CLEANFILES = 
+CLEANFILES =
 SUFFIXES =
+
+bin_PROGRAMS += coin
+coin_SOURCES = coin.c coin.yuck
+coin_SOURCES += tls.c tls.h
+coin_SOURCES += version.c version.h
+coin_SOURCES += boobs.h
+coin_CPPFLAGS = $(AM_CPPFLAGS) $(LIBEV_CPPFLAGS)
+coin_LDFLAGS = $(AM_LDFLAGS)  $(LIBEV_LDFLAGS)
+coin_LDADD = $(LIBEV_LIBS) -lssl -lcrypto
+BUILT_SOURCES += coin.yucc
 
 CLEANFILES += version.c
 EXTRA_DIST += version.c.in
@@ -41,3 +48,5 @@ SUFFIXES += .yucc
 ## Create assembler output (debugging purposes only)
 .c.s:
 	$(COMPILE) -S -c $(AM_CFLAGS) $<
+
+## Makefile.am ends here
