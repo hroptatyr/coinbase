@@ -440,6 +440,8 @@ ws_cb(EV_P_ ev_io *w, int UNUSED(revents))
 		break;
 
 	case COIN_ST_JOIN:
+		/* assume that we've successfully joined */
+		ctx->st = COIN_ST_JOIND;
 	case COIN_ST_JOIND:;
 		ssize_t npr;
 
