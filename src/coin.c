@@ -25,7 +25,7 @@ static const char logfile[] = "prices";
 static char hostname[256];
 static size_t hostnsz;
 
-#define API_HOST	"ws-feed.exchange.coinbase.com"
+#define API_HOST	"ws-feed.gdax.com"
 #define API_PORT	443
 
 #define TIMEOUT		6.0
