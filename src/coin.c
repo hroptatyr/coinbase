@@ -158,7 +158,7 @@ toout_logline(const char *buf, size_t len)
 {
 	const char *lp = buf;
 	const char *const ep = buf + len;
-	size_t sz, cz;
+	size_t sz, cz, oz;
 
 	sz = hrclock_print(line, sizeof(line));
 	line[sz++] = '\t';
@@ -174,19 +174,17 @@ toout_logline(const char *buf, size_t len)
 		line[sz] = '\0';
 		fputs(line + of + cz, stderr);
 	}
+	oz = sz;
 	if (sz == cz) {
-		const size_t of = sz;
-
 		memcpy(line + sz, buf, len);
-		sz += len;
-		line[sz++] = '\n';
-		line[sz] = '\0';
-		fputs(line + of, stderr);
-		cz = 0U;
+		oz = sz += len;
+		line[oz++] = '\n';
+		line[oz] = '\0';
+		fputs(line + cz, stderr);
 	}
 
 	/* write to stdout and to logfile */
-	write(logfd, line + cz, sz - cz);
+	write(logfd, line + cz, oz);
 	return sz - cz;
 }
 
@@ -300,7 +298,7 @@ proc_beef(const char *buf, size_t len)
 			if (nlefto) {
 				toout_logline("CONT!", 5U);
 				nwr = toout_logline2(lefto, nlefto, bp, bz);
-				if (nwr > 0 && (size_t)nwr < bz) {
+				if ((size_t)nwr < bz) {
 					/* stash the rest for CONT */
 					nlefto = bz + nlefto - nwr;
 					memcpy(lefto, bp + nwr, nlefto);
@@ -311,7 +309,7 @@ proc_beef(const char *buf, size_t len)
 			/* text message */
 			nlefto = 0U;
 			nwr = toout_logline(bp, bz);
-			if (nwr > 0 && (size_t)nwr < bz) {
+			if ((size_t)nwr < bz) {
 				/* stash the rest for CONT */
 				nlefto = bz - nwr;
 				memcpy(lefto, bp + nwr, nlefto);
