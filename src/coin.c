@@ -283,7 +283,7 @@ proc_beef(const char *buf, size_t len)
 			bz += sizeof(fr->mkey);
 		}
 
-		if (npr + bz > len) {
+		if ((bp - buf) + bz > len) {
 			fputs("CONT?\n", stderr);
 			break;
 		}
