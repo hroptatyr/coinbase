@@ -127,7 +127,7 @@ static struct timespec tsp[1];
 static inline size_t
 hrclock_print(char *buf, size_t __attribute__((unused)) len)
 {
-	clock_gettime(CLOCK_REALTIME, tsp);
+	clock_gettime(CLOCK_REALTIME_COARSE, tsp);
 	return sprintf(buf, "%ld.%09li", tsp->tv_sec, tsp->tv_nsec);
 }
 
@@ -153,38 +153,40 @@ close_sock(int fd)
 
 static char line[65536U];
 
+static inline size_t
+memncpy(char *restrict tgt, const char *src, size_t zrc)
+{
+	memcpy(tgt, src, zrc);
+	return zrc;
+}
+
 static ssize_t
 toout_logline(const char *buf, size_t len)
 {
 	const char *lp = buf;
 	const char *const ep = buf + len;
-	size_t sz, cz, oz;
+	size_t sz, cz;
 
+	/* this is a prefix that we prepend to each line */
 	sz = hrclock_print(line, sizeof(line));
 	line[sz++] = '\t';
 	cz = sz;
+
 	for (const char *eol;
 	     lp < ep && (eol = memchr(lp, '\n', ep - lp)); lp = eol + 1U) {
-		const size_t of = sz;
-
-		memcpy(line + sz, line, cz);
-		sz += cz;
-		memcpy(line + sz, lp, eol - lp + 1U);
-		sz += eol - lp + 1U;
-		line[sz] = '\0';
-		fputs(line + of + cz, stderr);
+		sz += memncpy(line + sz, line, cz);
+		sz += memncpy(line + sz, lp, eol + 1U - lp);
 	}
-	oz = sz;
 	if (sz == cz) {
-		memcpy(line + sz, buf, len);
-		oz = sz += len;
-		line[oz++] = '\n';
-		line[oz] = '\0';
-		fputs(line + cz, stderr);
+		sz += memncpy(line + sz, buf, len);
+		line[sz++] = '\n';
+		/* use the prefix directly */
+		cz = 0U;
 	}
 
 	/* write to stdout and to logfile */
-	write(logfd, line + cz, oz);
+	write(logfd, line + cz, sz - cz);
+	fwrite(line + cz, 1, sz - cz, stderr);
 	return sz - cz;
 }
 
@@ -196,37 +198,22 @@ toout_logline2(const char *pb, size_t pbz, const char *buf, size_t len)
 	const char *eol;
 	size_t sz, cz;
 
+	/* again, a prefix that we're about to prepend */
 	sz = hrclock_print(line, sizeof(line));
 	line[sz++] = '\t';
 	cz = sz;
 
-	/* copy leftovers from last time */
-	memcpy(line + sz, pb, pbz);
-	sz += pbz;
+	/* copy left-overs from last time */
+	sz += memncpy(line + sz, pb, pbz);
 
-	if ((eol = memchr(lp, '\n', ep - lp))) {
-		const size_t of = sz;
-
-		memcpy(line + sz, lp, eol - lp + 1U);
-		sz += eol - lp + 1U;
-		line[sz] = '\0';
-		fputs(line + of + cz, stderr);
-
-		lp = eol + 1U;
-	}
 	for (; lp < ep && (eol = memchr(lp, '\n', ep - lp)); lp = eol + 1U) {
-		const size_t of = sz;
-
-		memcpy(line + sz, line, cz);
-		sz += cz;
-		memcpy(line + sz, lp, eol - lp + 1U);
-		sz += eol - lp + 1U;
-		line[sz] = '\0';
-		fputs(line + of + cz, stderr);
+		sz += memncpy(line + sz, line, cz);
+		sz += memncpy(line + sz, lp, eol + 1U - lp);
 	}
 
 	/* write to stdout and to logfile */
 	write(logfd, line + cz, sz - cz);
+	fwrite(line + cz, 1, sz - cz, stderr);
 	return sz - cz;
 }
 
