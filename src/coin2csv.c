@@ -167,6 +167,7 @@ static int
 procln(const char *line, size_t llen)
 {
 /* process one line */
+	static const char *sides[] = {"???", "BID", "ASK"};
 	const char *const eol = line + llen;
 	jsmntok_t tok[64U];
 	jsmn_parser p;
@@ -256,28 +257,25 @@ procln(const char *line, size_t llen)
 	/* fidget qty around according to type*/
 	beef.q = beef.ty == TYPE_OPEN ? beef.q : -beef.q;
 
-	if (beef.sd) {
-		printf("adding to %p ... ", book[beef.sd - 1U]);
-		qx_t x = btree_add(book[beef.sd - 1U], beef.p, beef.q);
-		printf("added %f -> %f\n", (double)beef.p, (double)x);
+	with (qx_t x = beef.sd
+	      ? btree_add(book[beef.sd - 1U], beef.p, beef.q)
+	      : 0.dd) {
+		char buf[256U];
+		size_t len = 0U;
+
+		len += tvtostr(buf, sizeof(buf), t);
+		buf[len++] = '\t';
+		len += memncpy(buf + len, beef.ins.ins, beef.ins.inz);
+		buf[len++] = '\t';
+		len += memncpy(buf + len, sides[beef.sd], 3U);
+		buf[len++] = '\t';
+		len += pxtostr(buf + len, sizeof(buf) - len, beef.p);
+		buf[len++] = '\t';
+		len += qxtostr(buf + len, sizeof(buf) - len, x);
+		buf[len++] = '\n';
+
+		fwrite(buf, 1, len, stdout);
 	}
-
-	static const char *sides[] = {"???", "BID", "ASK"};
-	char buf[256U];
-	size_t len = 0U;
-
-	len += tvtostr(buf, sizeof(buf), t);
-	buf[len++] = '\t';
-	len += memncpy(buf + len, beef.ins.ins, beef.ins.inz);
-	buf[len++] = '\t';
-	len += memncpy(buf + len, sides[beef.sd], 3U);
-	buf[len++] = '\t';
-	len += pxtostr(buf + len, sizeof(buf) - len, beef.p);
-	buf[len++] = '\t';
-	len += qxtostr(buf + len, sizeof(buf) - len, beef.q);
-	buf[len++] = '\n';
-
-	fwrite(buf, 1, len, stdout);
 	return 0;
 }
 

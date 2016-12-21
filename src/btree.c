@@ -171,7 +171,10 @@ btree_add(btree_t t, KEY_T k, VAL_T v)
 		splitp = twig_add(t, k, &vp);
 	}
 	/* do the maths */
-	v = *vp += v;
+	v += *vp;
+	/* be saturating */
+	v = v > 0.dd ? v : 0.dd;
+	*vp = v;
 
 	if (UNLIKELY(splitp)) {
 		/* root got split, bollocks */
