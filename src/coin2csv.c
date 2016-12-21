@@ -8,6 +8,7 @@
 #include "hash.h"
 #include "dfp754_d32.h"
 #include "dfp754_d64.h"
+#include "btree.h"
 #include "nifty.h"
 
 #define NSECS	(1000000000)
@@ -136,6 +137,8 @@ snarf_side(const char *val, size_t UNUSED(len))
 /* processor */
 static hx_t hx_type, hx_time, hx_prod, hx_side, hx_pric, hx_size, hx_rsiz;
 
+static btree_t book[2U];
+
 static void
 init(void)
 {
@@ -146,12 +149,17 @@ init(void)
 	hx_pric = hash("price", 4U);
 	hx_size = hash("size", 4U);
 	hx_rsiz = hash("remaining_size", 4U);
+
+	book[SIDE_BID - 1U] = make_btree();
+	book[SIDE_ASK - 1U] = make_btree();
 	return;
 }
 
 static void
 fini(void)
 {
+	free_btree(book[SIDE_BID - 1U]);
+	free_btree(book[SIDE_ASK - 1U]);
 	return;
 }
 
@@ -247,6 +255,12 @@ procln(const char *line, size_t llen)
 	}
 	/* fidget qty around according to type*/
 	beef.q = beef.ty == TYPE_OPEN ? beef.q : -beef.q;
+
+	if (beef.sd) {
+		printf("adding to %p ... ", book[beef.sd - 1U]);
+		qx_t x = btree_add(book[beef.sd - 1U], beef.p, beef.q);
+		printf("added %f -> %f\n", (double)beef.p, (double)x);
+	}
 
 	static const char *sides[] = {"???", "BID", "ASK"};
 	char buf[256U];
