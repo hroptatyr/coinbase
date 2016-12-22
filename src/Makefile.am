@@ -30,18 +30,12 @@ coin2csv_SOURCES += jsmn.c jsmn.h
 coin2csv_SOURCES += hash.c hash.h
 coin2csv_SOURCES += dfp754_d32.c dfp754_d32.h
 coin2csv_SOURCES += dfp754_d64.c dfp754_d64.h
-coin2csv_SOURCES += btree.c btree.h
 coin2csv_SOURCES += version.c version.h
 coin2csv_CPPFLAGS = $(AM_CPPFLAGS)
 coin2csv_CPPFLAGS += $(dfp754_CFLAGS)
 coin2csv_LDFLAGS = $(AM_LDFLAGS)
 coin2csv_LDFLAGS += $(dfp754_LIBS)
 BUILT_SOURCES += coin2csv.yucc
-
-noinst_PROGRAMS += btree
-btree_CPPFLAGS = $(AM_CPPFLAGS)
-btree_CPPFLAGS += -DSTANDALONE
-btree_CPPFLAGS += $(dfp754_CFLAGS)
 
 
 CLEANFILES += version.c

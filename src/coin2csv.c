@@ -8,7 +8,6 @@
 #include "hash.h"
 #include "dfp754_d32.h"
 #include "dfp754_d64.h"
-#include "btree.h"
 #include "nifty.h"
 
 #define NSECS	(1000000000)
@@ -137,8 +136,6 @@ snarf_side(const char *val, size_t UNUSED(len))
 /* processor */
 static hx_t hx_type, hx_time, hx_prod, hx_side, hx_pric, hx_size, hx_rsiz;
 
-static btree_t book[2U];
-
 static void
 init(void)
 {
@@ -149,17 +146,12 @@ init(void)
 	hx_pric = hash("price", 4U);
 	hx_size = hash("size", 4U);
 	hx_rsiz = hash("remaining_size", 4U);
-
-	book[SIDE_BID - 1U] = make_btree();
-	book[SIDE_ASK - 1U] = make_btree();
 	return;
 }
 
 static void
 fini(void)
 {
-	free_btree(book[SIDE_BID - 1U]);
-	free_btree(book[SIDE_ASK - 1U]);
 	return;
 }
 
@@ -167,7 +159,7 @@ static int
 procln(const char *line, size_t llen)
 {
 /* process one line */
-	static const char *sides[] = {"???", "BID", "ASK"};
+	static const char *sides[] = {"???3", "BID3", "ASK3"};
 	const char *const eol = line + llen;
 	jsmntok_t tok[64U];
 	jsmn_parser p;
@@ -257,9 +249,7 @@ procln(const char *line, size_t llen)
 	/* fidget qty around according to type*/
 	beef.q = beef.ty == TYPE_OPEN ? beef.q : -beef.q;
 
-	with (qx_t x = beef.sd
-	      ? btree_add(book[beef.sd - 1U], beef.p, beef.q)
-	      : 0.dd) {
+	{
 		char buf[256U];
 		size_t len = 0U;
 
@@ -267,11 +257,11 @@ procln(const char *line, size_t llen)
 		buf[len++] = '\t';
 		len += memncpy(buf + len, beef.ins.ins, beef.ins.inz);
 		buf[len++] = '\t';
-		len += memncpy(buf + len, sides[beef.sd], 3U);
+		len += memncpy(buf + len, sides[beef.sd], 4U);
 		buf[len++] = '\t';
 		len += pxtostr(buf + len, sizeof(buf) - len, beef.p);
 		buf[len++] = '\t';
-		len += qxtostr(buf + len, sizeof(buf) - len, x);
+		len += qxtostr(buf + len, sizeof(buf) - len, beef.q);
 		buf[len++] = '\n';
 
 		fwrite(buf, 1, len, stdout);
