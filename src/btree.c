@@ -191,13 +191,12 @@ make_btree(void)
 void
 free_btree(btree_t t)
 {
-	if (!t->innerp) {
-		return;
-	}
-	/* descend and free */
-	for (size_t i = 0U; i <= t->n; i++) {
-		/* descend */
-		free_btree(t->val[i].t);
+	if (t->innerp) {
+		/* descend and free */
+		for (size_t i = 0U; i <= t->n; i++) {
+			/* descend */
+			free_btree(t->val[i].t);
+		}
 	}
 	free(t);
 	return;
