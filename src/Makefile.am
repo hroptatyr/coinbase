@@ -41,6 +41,7 @@ BUILT_SOURCES += coin2csv.yucc
 noinst_PROGRAMS += btree
 btree_CPPFLAGS = $(AM_CPPFLAGS)
 btree_CPPFLAGS += -DSTANDALONE
+btree_CPPFLAGS += $(dfp754_CFLAGS)
 
 
 CLEANFILES += version.c

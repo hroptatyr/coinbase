@@ -206,6 +206,46 @@ btree_add(btree_t t, KEY_T k, VAL_T v)
 	return v;
 }
 
+KEY_T
+btree_min(btree_t t, VAL_T *v)
+{
+	for (; t->innerp; t = t->val->t);
+	do {
+		size_t i;
+		for (i = 0U; i < t->n; i++) {
+			if (LIKELY(t->val[i].v > 0.dd)) {
+				if (LIKELY(v != NULL)) {
+					*v = t->val[i].v;
+				}
+				return t->key[i];
+			}
+		}
+	} while ((t = t->next));
+	return nand32("");
+}
+
+KEY_T
+btree_max(btree_t t, VAL_T *v)
+{
+	KEY_T best_max = nand32("");
+	VAL_T best_val;
+
+	for (; t->innerp; t = t->val->t);
+	do {
+		size_t i;
+		for (i = 0U; i < t->n; i++) {
+			if (LIKELY(t->val[i].v > 0.dd)) {
+				best_max = t->key[i];
+				best_val = t->val[i].v;
+			}
+		}
+	} while ((t = t->next));
+	if (LIKELY(v != NULL && !isnand32(best_max))) {
+		*v = best_val;
+	}
+	return best_max;
+}
+
 #if defined STANDALONE
 # include <stdio.h>
 
@@ -233,13 +273,23 @@ main(void)
 	x = make_btree();
 	btree_add(x, 1.23228df, 0.5dd);
 	btree_add(x, 1.23226df, 0.5dd);
-	btree_add(x, 1.23225df, 0.5dd);
+	btree_add(x, 1.23225df, -0.5dd);
 	btree_add(x, 1.23230df, 0.5dd);
 	btree_add(x, 1.23229df, 0.5dd);
 	btree_add(x, 1.23232df, 0.5dd);
 	btree_add(x, 1.23227df, 0.5dd);
+	btree_add(x, 1.23232df, -0.5dd);
 
 	btree_prnt(x, 0U);
+
+	VAL_T v;
+	KEY_T k;
+	k = btree_min(x, &v);
+	printf("min %f (%f)\n", (double)k, (double)v);
+
+	k = btree_max(x, &v);
+	printf("max %f (%f)\n", (double)k, (double)v);
+
 	free_btree(x);
 	return 0;
 }

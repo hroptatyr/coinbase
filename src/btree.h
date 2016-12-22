@@ -53,4 +53,7 @@ extern void free_btree(btree_t);
 
 extern VAL_T btree_add(btree_t, KEY_T, VAL_T);
 
+extern KEY_T btree_min(btree_t, VAL_T*);
+extern KEY_T btree_max(btree_t, VAL_T*);
+
 #endif	/* INCLUDED_btree_h_ */
