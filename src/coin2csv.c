@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <time.h>
 #include "jsmn.h"
 #include "hash.h"
 #include "dfp754_d32.h"
@@ -100,6 +101,46 @@ tvtostr(char *restrict buf, size_t bsz, tv_t t)
 	return snprintf(buf, bsz, "%lu.%09lu", t / NSECS, t % NSECS);
 }
 
+static tv_t
+strtons(const char *buf, char **endptr)
+{
+/* interpret BUF (looks like .8455) as subsecond stamp */
+	char *on;
+	tv_t r;
+
+	if (UNLIKELY(*buf++ != '.')) {
+		/* no subseconds here, mate */
+		return 0UL;
+	}
+	r = strtoul(buf, &on, 10);	
+	switch (on - buf) {
+	case 0U:
+		r *= 10U;
+	case 1U:
+		r *= 10U;
+	case 2U:
+		r *= 10U;
+	case 3U:
+		r *= 10U;
+	case 4U:
+		r *= 10U;
+	case 5U:
+		r *= 10U;
+	case 6U:
+		r *= 10U;
+	case 7U:
+		r *= 10U;
+	case 8U:
+		r *= 10U;
+	default:
+		break;
+	}
+	if (LIKELY(endptr != NULL)) {
+		*endptr = on;
+	}
+	return r;
+}
+
 
 /* specific values */
 static coin_type_t
@@ -163,11 +204,12 @@ procln(const char *line, size_t llen)
 	const char *const eol = line + llen;
 	jsmntok_t tok[64U];
 	jsmn_parser p;
+	ssize_t r;
 	char *on;
-	tv_t t;
 	/* the info to fill */
 	struct {
-		tv_t t;
+		tv_t xt;
+		tv_t rt;
 		coin_ins_t ins;
 		coin_side_t sd;
 		px_t p;
@@ -176,7 +218,7 @@ procln(const char *line, size_t llen)
 		coin_type_t ty;
 	} beef = {0U};
 
-	if (UNLIKELY((t = strtotv(line, &on)) == NOT_A_TIME)) {
+	if (UNLIKELY((beef.rt = strtotv(line, &on)) == NOT_A_TIME)) {
 		/* just skip him */
 		return -1;
 	} else if (UNLIKELY(*on++ != '\t')) {
@@ -189,7 +231,7 @@ procln(const char *line, size_t llen)
 	}
 
 	jsmn_init(&p);
-	ssize_t r = jsmn_parse(&p, on, eol - on, tok, countof(tok));
+	r = jsmn_parse(&p, on, eol - on, tok, countof(tok));
 	if (UNLIKELY(r < 0)) {
 		/* didn't work */
 		return -1;
@@ -230,9 +272,13 @@ procln(const char *line, size_t llen)
 			const char *vs = on + tok[i].start;
 			beef.q = strtoqx(vs, NULL);
 		} else if (hx == hx_time && tok[++i].type == JSMN_STRING) {
+			struct tm tm[1U];
 			const char *vs = on + tok[i].start;
-			size_t vz = tok[i].end - tok[i].start;
-			;
+			const char *nanos = strptime(vs, "%FT%T", tm);
+			/* exchange time */
+			beef.xt = timegm(tm);
+			beef.xt *= NSECS;
+			beef.xt += strtons(nanos, NULL);
 		} else if (hx == hx_pric && tok[++i].type == JSMN_STRING) {
 			const char *vs = on + tok[i].start;
 			beef.p = strtopx(vs, NULL);
@@ -253,7 +299,9 @@ procln(const char *line, size_t llen)
 		char buf[256U];
 		size_t len = 0U;
 
-		len += tvtostr(buf, sizeof(buf), t);
+		len += tvtostr(buf + len, sizeof(buf) - len, beef.xt);
+		buf[len++] = '\t';
+		len += tvtostr(buf + len, sizeof(buf) - len, beef.rt);
 		buf[len++] = '\t';
 		len += memncpy(buf + len, beef.ins.ins, beef.ins.inz);
 		buf[len++] = '\t';
