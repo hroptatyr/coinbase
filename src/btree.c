@@ -60,6 +60,72 @@ struct btree_s {
 };
 
 
+static void
+root_split(btree_t root)
+{
+	/* root got split, bollocks */
+	const btree_t left = make_btree();
+	const btree_t rght = make_btree();
+	const size_t piv = countof(root->key) / 2U - 1U;
+
+	/* T will become the new root so push stuff to LEFT ... */
+	memcpy(left->key, root->key, (piv + 1U) * sizeof(*root->key));
+	memcpy(left->val, root->val, (piv + 1U) * sizeof(*root->val));
+	left->innerp = root->innerp;
+	left->n = piv + !root->innerp;
+	left->next = rght;
+	/* ... and RGHT */
+	memcpy(rght->key, root->key + piv + 1U, (piv + 0U) * sizeof(*root->key));
+	memcpy(rght->val, root->val + piv + 1U, (piv + 1U) * sizeof(*root->val));
+	rght->innerp = root->innerp;
+	rght->n = piv;
+	rght->next = NULL;
+	/* and now massage T */
+	root->key[0U] = root->key[piv];
+	memset(root->key + 1U, -1, sizeof(root->key) - sizeof(*root->key));
+	root->val[0U].t = left;
+	root->val[1U].t = rght;
+	root->n = 1U;
+	root->innerp = 1U;
+	root->next = NULL;
+	return;
+}
+
+static void
+node_split(btree_t prnt, size_t idx)
+{
+/* PRNT's IDX-th child will be split */
+	const btree_t chld = prnt->val[idx].t;
+	const btree_t rght = make_btree();
+	const size_t piv = countof(chld->key) / 2U - 1U;
+
+	/* shift things to RGHT */
+	memcpy(rght->key, chld->key + piv + 1U, (piv + 0U) * sizeof(*chld->key));
+	memcpy(rght->val, chld->val + piv + 1U, (piv + 1U) * sizeof(*chld->val));
+	rght->innerp = chld->innerp;
+	rght->n = piv;
+	rght->next = NULL;
+
+	if (idx < prnt->n) {
+		/* make some room then */
+		memmove(prnt->key + idx + 1U,
+			prnt->key + idx + 0U,
+			(countof(prnt->key) - (idx + 1U)) * sizeof(*prnt->key));
+		memmove(prnt->val + idx + 1U,
+			prnt->val + idx + 0U,
+			(countof(prnt->key) - (idx + 1U)) * sizeof(*prnt->val));
+	}
+	/* and now massage LEFT which is C and T */
+	prnt->key[idx] = chld->key[piv];
+	prnt->n++;
+	prnt->val[idx + 1U].t = rght;
+	chld->n = piv + !chld->innerp;
+	memset(chld->key + chld->n, -1,
+	       (countof(chld->key) - chld->n) * sizeof(*chld->key));
+	chld->next = rght;
+	return;
+}
+
 static bool
 leaf_add(btree_t t, KEY_T k, VAL_T *v[static 1U])
 {
@@ -107,28 +173,7 @@ twig_add(btree_t t, KEY_T k, VAL_T *v[static 1U])
 
 	if (splitp) {
 		/* C needs splitting, not again */
-		btree_t rght = make_btree();
-		const size_t piv = countof(c->key) / 2U - 1U;
-
-		/* shift things to RGHT */
-		memcpy(rght->key, c->key + piv + 1U, (piv + 0U) * sizeof(*c->key));
-		memcpy(rght->val, c->val + piv + 1U, (piv + 1U) * sizeof(*c->val));
-		rght->innerp = c->innerp;
-		rght->n = piv;
-		rght->next = NULL;
-
-		if (i < t->n) {
-			/* make some room then */
-			memmove(t->key + i + 1U, t->key + i, (countof(t->key) - (i + 1U)) * sizeof(*t->key));
-			memmove(t->val + i + 1U, t->val + i, (countof(t->key) - (i + 1U)) * sizeof(*t->val));
-		}
-		/* and now massage LEFT which is C and T */
-		t->key[i] = c->key[piv];
-		t->n++;
-		t->val[i + 1U].t = rght;
-		c->n = piv + !c->innerp;
-		memset(c->key + c->n, -1, sizeof(c->key) - c->n * sizeof(*c->key));
-		c->next = rght;
+		node_split(t, i);
 	}
 	return t->n >= countof(t->key) - 1U;
 }
@@ -178,30 +223,7 @@ btree_add(btree_t t, KEY_T k, VAL_T v)
 
 	if (UNLIKELY(splitp)) {
 		/* root got split, bollocks */
-		btree_t left = make_btree();
-		btree_t rght = make_btree();
-		const size_t piv = countof(t->key) / 2U - 1U;
-
-		/* T will become the new root so push stuff to LEFT ... */
-		memcpy(left->key, t->key, (piv + 1U) * sizeof(*t->key));
-		memcpy(left->val, t->val, (piv + 1U) * sizeof(*t->val));
-		left->innerp = t->innerp;
-		left->n = piv + !t->innerp;
-		left->next = rght;
-		/* ... and RGHT */
-		memcpy(rght->key, t->key + piv + 1U, (piv + 0U) * sizeof(*t->key));
-		memcpy(rght->val, t->val + piv + 1U, (piv + 1U) * sizeof(*t->val));
-		rght->innerp = t->innerp;
-		rght->n = piv;
-		rght->next = NULL;
-		/* and now massage T */
-		t->key[0U] = t->key[piv];
-		memset(t->key + 1U, -1, sizeof(t->key) - sizeof(*t->key));
-		t->val[0U].t = left;
-		t->val[1U].t = rght;
-		t->n = 1U;
-		t->innerp = 1U;
-		t->next = NULL;
+		root_split(t);
 	}
 	return v;
 }
