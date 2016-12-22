@@ -33,6 +33,9 @@ SXE_CHECK_CFLAGS
 AC_CHECK_TOOLS([AR], [xiar ar], [false])
 AC_C_BIGENDIAN
 
+## check for decimals
+SXE_CHECK_DFP754
+
 ## check if yuck is globally available
 AX_CHECK_YUCK
 AX_YUCK_SCMVER([version.mk])

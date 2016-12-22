@@ -1,0 +1,3 @@
+Usage: coin2csv < COIN_PRICES
+
+Turn coin data into level2 price stream.
