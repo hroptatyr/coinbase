@@ -1,3 +1,5 @@
-Usage: coin2csv < COIN_PRICES
+Usage: coin2b < COIN_PRICES
 
-Turn coin data into level2 price stream.
+Turn coin data into level-3 book stream.
+The resulting stream will be suitable for processing with the
+books tools.
