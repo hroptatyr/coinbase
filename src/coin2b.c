@@ -312,7 +312,7 @@ procln(const char *line, size_t llen)
 }
 
 
-#include "coin2csv.yucc"
+#include "coin2b.yucc"
 
 int
 main(int argc, char *argv[])
