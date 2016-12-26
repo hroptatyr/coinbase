@@ -7,8 +7,6 @@
 #include <time.h>
 #include "jsmn.h"
 #include "hash.h"
-#include "dfp754_d32.h"
-#include "dfp754_d64.h"
 #include "nifty.h"
 
 #define NSECS	(1000000000)
@@ -16,13 +14,6 @@
 
 typedef long unsigned int tv_t;
 #define NOT_A_TIME	((tv_t)-1ULL)
-
-typedef _Decimal32 px_t;
-typedef _Decimal64 qx_t;
-#define strtopx		strtod32
-#define pxtostr		d32tostr
-#define strtoqx		strtod64
-#define qxtostr		d64tostr
 
 typedef enum {
 	TYPE_UNK,
@@ -212,8 +203,8 @@ procln(const char *line, size_t llen)
 		tv_t rt;
 		coin_ins_t ins;
 		coin_side_t sd;
-		px_t p;
-		qx_t q;
+		char p[16U];
+		char q[16U];
 		/* auxiliary stuff */
 		coin_type_t ty;
 	} beef = {0U};
@@ -270,7 +261,8 @@ procln(const char *line, size_t llen)
 		} else if ((hx == hx_size || hx == hx_rsiz) &&
 			   tok[++i].type == JSMN_STRING) {
 			const char *vs = on + tok[i].start;
-			beef.q = strtoqx(vs, NULL);
+			size_t vz = tok[i].end - tok[i].start;
+			memcpy(beef.q, vs, vz);
 		} else if (hx == hx_time && tok[++i].type == JSMN_STRING) {
 			struct tm tm[1U];
 			const char *vs = on + tok[i].start;
@@ -281,7 +273,8 @@ procln(const char *line, size_t llen)
 			beef.xt += strtons(nanos, NULL);
 		} else if (hx == hx_pric && tok[++i].type == JSMN_STRING) {
 			const char *vs = on + tok[i].start;
-			beef.p = strtopx(vs, NULL);
+			size_t vz = tok[i].end - tok[i].start;
+			memcpy(beef.p, vs, vz);
 		} else if (hx == hx_prod && tok[++i].type == JSMN_STRING) {
 			const char *vs = on + tok[i].start;
 			size_t vz = tok[i].end - tok[i].start;
@@ -289,11 +282,9 @@ procln(const char *line, size_t llen)
 		}
 	}
 	/* check quantity */
-	if (UNLIKELY(!beef.q)) {
+	if (UNLIKELY(!beef.q[0U] || beef.q[0U] == '0' && !beef.q[1U])) {
 		return 0;
 	}
-	/* fidget qty around according to type*/
-	beef.q = beef.ty == TYPE_OPEN ? beef.q : -beef.q;
 
 	{
 		char buf[256U];
@@ -307,9 +298,12 @@ procln(const char *line, size_t llen)
 		buf[len++] = '\t';
 		len += memncpy(buf + len, sides[beef.sd], 4U);
 		buf[len++] = '\t';
-		len += pxtostr(buf + len, sizeof(buf) - len, beef.p);
+		len += memncpy(buf + len, beef.p, strlen(beef.p));
 		buf[len++] = '\t';
-		len += qxtostr(buf + len, sizeof(buf) - len, beef.q);
+		if (beef.ty != TYPE_OPEN) {
+			buf[len++] = '-';
+		}
+		len += memncpy(buf + len, beef.q, strlen(beef.q));
 		buf[len++] = '\n';
 
 		fwrite(buf, 1, len, stdout);
@@ -318,7 +312,7 @@ procln(const char *line, size_t llen)
 }
 
 
-#include "coin2csv.yucc"
+#include "coin2b.yucc"
 
 int
 main(int argc, char *argv[])

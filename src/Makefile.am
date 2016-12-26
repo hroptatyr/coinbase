@@ -24,18 +24,12 @@ coin_LDFLAGS = $(AM_LDFLAGS)  $(LIBEV_LDFLAGS)
 coin_LDADD = $(LIBEV_LIBS) -lssl -lcrypto
 BUILT_SOURCES += coin.yucc
 
-bin_PROGRAMS += coin2csv
-coin2csv_SOURCES = coin2csv.c coin2csv.yuck
-coin2csv_SOURCES += jsmn.c jsmn.h
-coin2csv_SOURCES += hash.c hash.h
-coin2csv_SOURCES += dfp754_d32.c dfp754_d32.h
-coin2csv_SOURCES += dfp754_d64.c dfp754_d64.h
-coin2csv_SOURCES += version.c version.h
-coin2csv_CPPFLAGS = $(AM_CPPFLAGS)
-coin2csv_CPPFLAGS += $(dfp754_CFLAGS)
-coin2csv_LDFLAGS = $(AM_LDFLAGS)
-coin2csv_LDFLAGS += $(dfp754_LIBS)
-BUILT_SOURCES += coin2csv.yucc
+bin_PROGRAMS += coin2b
+coin2b_SOURCES = coin2b.c coin2b.yuck
+coin2b_SOURCES += jsmn.c jsmn.h
+coin2b_SOURCES += hash.c hash.h
+coin2b_SOURCES += version.c version.h
+BUILT_SOURCES += coin2b.yucc
 
 
 CLEANFILES += version.c
