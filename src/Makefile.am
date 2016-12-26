@@ -19,6 +19,7 @@ coin_SOURCES = coin.c coin.yuck
 coin_SOURCES += tls.c tls.h
 coin_SOURCES += version.c version.h
 coin_SOURCES += boobs.h
+coin_SOURCES += nifty.h
 coin_CPPFLAGS = $(AM_CPPFLAGS) $(LIBEV_CPPFLAGS)
 coin_LDFLAGS = $(AM_LDFLAGS)  $(LIBEV_LDFLAGS)
 coin_LDADD = $(LIBEV_LIBS) -lssl -lcrypto
