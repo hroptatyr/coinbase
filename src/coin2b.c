@@ -282,7 +282,7 @@ procln(const char *line, size_t llen)
 		}
 	}
 	/* check quantity */
-	if (UNLIKELY(!beef.q)) {
+	if (UNLIKELY(!beef.q[0U] || beef.q[0U] == '0' && !beef.q[1U])) {
 		return 0;
 	}
 
